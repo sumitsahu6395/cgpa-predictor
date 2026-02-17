@@ -1,58 +1,91 @@
 import streamlit as st
 import joblib
-import hashlib
+import json
+import os
 import warnings
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
 warnings.filterwarnings("ignore")
 
-# ---------- LOAD MODEL ----------
-LR = joblib.load("LINEARMODEL")
+# Load model
+LR = joblib.load("D:/LR/LINEARMODEL")
 
-# ---------- PAGE CONFIG ----------
-st.set_page_config(
-    page_title="CGPA Predictor",
-    page_icon="🎓",
-    layout="centered"
-)
+st.set_page_config(page_title="CGPA Predictor", page_icon="🎓", layout="centered")
 
-# ---------- PASSWORD HASH ----------
-def hash_password(password):
-    return hashlib.sha256(password.encode()).hexdigest()
+USERS_FILE = "users.json"
 
-# ---------- SESSION STATE ----------
+# ---------- USER DATA FUNCTIONS ---------- #
+
+def load_users():
+    if os.path.exists(USERS_FILE):
+        with open(USERS_FILE, "r") as f:
+            return json.load(f)
+    return {}
+
+def save_users(users):
+    with open(USERS_FILE, "w") as f:
+        json.dump(users, f)
+
+# ---------- SESSION STATE ---------- #
+
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 
 if "username" not in st.session_state:
     st.session_state.username = ""
 
-# ---------- LOGIN ----------
+# ---------- REGISTER PAGE ---------- #
+
+def register():
+    st.subheader("📝 Register")
+
+    new_user = st.text_input("Create Username")
+    new_pass = st.text_input("Create Password", type="password")
+
+    if st.button("Register"):
+        users = load_users()
+
+        if new_user in users:
+            st.error("User already exists")
+        else:
+            users[new_user] = new_pass
+            save_users(users)
+            st.success("Registration successful! You can login now.")
+
+# ---------- LOGIN PAGE ---------- #
+
 def login():
-    st.title("🔐 Student Login")
+    st.subheader("🔐 Login")
 
     username = st.text_input("Username")
     password = st.text_input("Password", type="password")
 
     if st.button("Login"):
+        users = load_users()
 
-        users = st.secrets["users"]
-
-        if username in users and users[username] == hash_password(password):
+        if username in users and users[username] == password:
             st.session_state.logged_in = True
             st.session_state.username = username
-            st.success("Login successful ✅")
+            st.success("Login successful")
             st.rerun()
         else:
-            st.error("Invalid credentials ❌")
+            st.error("Invalid credentials")
 
-# ---------- AUTH ----------
+# ---------- AUTH SECTION ---------- #
+
 if not st.session_state.logged_in:
-    login()
+    choice = st.radio("Select Option", ["Login", "Register"])
+
+    if choice == "Login":
+        login()
+    else:
+        register()
+
     st.stop()
 
-# ---------- DARK MODE ----------
+# ---------- DARK MODE ---------- #
+
 dark_mode = st.toggle("🌙 Dark Mode")
 
 if dark_mode:
@@ -62,22 +95,26 @@ if dark_mode:
         </style>
     """, unsafe_allow_html=True)
 
-# ---------- HEADER ----------
-st.title("🎓 CGPA Predictor")
-st.write(f"Welcome **{st.session_state.username}** 👋")
+# ---------- APP HEADER ---------- #
 
-# ---------- INPUT ----------
+st.title("🎓 Student CGPA Predictor")
+st.write(f"Welcome, **{st.session_state.username}** 👋")
+
+# ---------- INPUT ---------- #
+
 hours = st.number_input("📚 Study Hours", 0.0, 24.0, step=0.5)
 
-# ---------- PREDICT ----------
+# ---------- PREDICT ---------- #
+
 if st.button("Predict CGPA 🚀"):
 
     cgpa = LR.predict([[hours]])[0]
 
-    # limit CGPA between 0 and 10
+    # ✅ Limit CGPA between 0 and 10
     cgpa = max(0, min(cgpa, 10))
 
     st.success(f"🎯 Predicted CGPA: {cgpa:.2f}")
+
 
     if cgpa >= 9:
         st.balloons()
@@ -91,11 +128,12 @@ if st.button("Predict CGPA 🚀"):
 
     st.progress(min(int(cgpa * 10), 100))
 
-# ---------- GRAPH ----------
+# ---------- GRAPH ---------- #
+
 st.subheader("📈 CGPA Trend")
 
 x = np.linspace(0, 24, 50)
-y = LR.predict(x.reshape(-1, 1))
+y = LR.predict(x.reshape(-1,1))
 
 fig, ax = plt.subplots()
 ax.plot(x, y)
@@ -104,7 +142,8 @@ ax.set_ylabel("CGPA")
 
 st.pyplot(fig)
 
-# ---------- DASHBOARD ----------
+# ---------- DASHBOARD ---------- #
+
 st.subheader("📊 Dashboard")
 
 col1, col2, col3 = st.columns(3)
@@ -113,7 +152,8 @@ col1.metric("Max CGPA", "10")
 col2.metric("Recommended Hours", "8+")
 col3.metric("Status", "Active")
 
-# ---------- LOGOUT ----------
+# ---------- LOGOUT ---------- #
+
 if st.button("Logout"):
     st.session_state.logged_in = False
     st.rerun()
