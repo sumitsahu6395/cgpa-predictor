@@ -9,7 +9,8 @@ import numpy as np
 warnings.filterwarnings("ignore")
 
 # Load model
-LR = joblib.load("D:/LR/LINEARMODEL")
+LR = joblib.load("LINEARMODEL")
+
 
 st.set_page_config(page_title="CGPA Predictor", page_icon="🎓", layout="centered")
 
@@ -157,3 +158,4 @@ col3.metric("Status", "Active")
 if st.button("Logout"):
     st.session_state.logged_in = False
     st.rerun()
+
