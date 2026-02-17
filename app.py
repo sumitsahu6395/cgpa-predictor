@@ -5,6 +5,10 @@ import os
 import warnings
 import matplotlib.pyplot as plt
 import numpy as np
+import streamlit as st
+
+st.write(st.secrets)
+
 
 warnings.filterwarnings("ignore")
 
@@ -158,5 +162,6 @@ col3.metric("Status", "Active")
 if st.button("Logout"):
     st.session_state.logged_in = False
     st.rerun()
+
 
 
